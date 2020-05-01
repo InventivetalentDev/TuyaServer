@@ -1,0 +1,112 @@
+strip used:         https://www.amazon.de/-/en/gp/product/B07W54H8VK/ref=ppx_yo_dt_b_asin_title_o00_s00?ie=UTF8&psc=1
+ceiling light used: https://www.amazon.de/-/en/gp/product/B07RJN2VJ3/ref=ppx_yo_dt_b_asin_title_o07_s00?ie=UTF8&psc=1
+
+BLUE
+00 6c ff 00 d6 ff ff
+
+
+FOREST GREEN
+        00 78   02ee    03e8 - strip
+40ff40  00 78   bfff - ceiling
+
+
+AZURE BLUE
+        00 d2   03e8    03e8 - strip
+0080ff  00 d2   ffff - ceiling
+
+
+DARK RED
+        00 00   03e8    03e8 - strip
+ff0000  00 00   ffff - ceiling
+
+PINK
+        01 5d   00f0    03e8 - strip
+ffc2cd  01 5d   3dff - ceiling
+
+
+0 SATURATION
+01520000     03e8     - strip
+ffff    ff00b6  00    ff - ceiling
+
+.5 SATURATION
+01520   1f2     03e8     - strip
+80fb    ff00b6  7f    ff - ceiling
+
+1 SATURATION
+01520   3e8     03e8      - strip
+00f7    ff00b6  ff    ff - ceiling
+
+
+
+.1 BRIGHTNESS
+01 52 03e8    000a - strip
+00  1b1c  00b6  ff  1b - ceiling
+
+1 BRIGHTNESS
+015203e8    03e8 - strip
+00  f7ff  00b6  ff  ff - ceiling
+
+
+
+
+
+    UPPER H FLAG
+       |  H 0-255
+       |   |
+       v   v
+
+RED
+        01 67    03e803e8 - strip
+ff0006  01 66  ffff - ceiling
+
+
+GREEN
+        00 59    03e803e8 - strip
+8fff00  00 56  ffff - ceiling
+
+
+LIGHT BLUE
+        00 b2    03e803e8 - strip
+00f7ff  00 b5  ffff - ceiling
+
+
+PURPLE
+        01 0e    03e803e8 - strip
+8200ff  01 0e  ffff - ceiling
+
+PINK
+        01 26    03e803e8 - strip
+f100ff  01 28  ffff - ceiling
+
+
+
+HHHH SSSS LLLL
+S&L => 0-1000 (03e8)
+
+
+
+                    S Probably
+                      strip seems to have more precision
+                    |
+                    v
+
+RED 1 SATURATION
+            00 02   03e8    03e8 - strip    1000
+ff    0012  01 63   ff      ff - ceiling    255
+
+RED .5 SATURATION
+            00 02   01f0    03e8 - strip    496
+ff    808a  01 63   7f      ff - ceiling    127
+
+RED 0 SATURATION
+            00 02   0000    03e8 - strip    0
+ff    ffff  01 63   00      ff - ceiling    0
+
+
+
+
+
+
+OFF - doesn't affect color it seems
+0002000003e8 - strip
+ffffff016300ff - ceiling

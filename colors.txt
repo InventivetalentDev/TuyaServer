@@ -1,0 +1,33 @@
+RED     00 00 03 E8 03 E8
+DARK    00 00 03 E8 00 64
+MID     00 00 03 E8 01 f4
+BRIGHT  00 00 03 E8 03 e8
+
+
+GREEN   00 78 03 E8 03 E8
+DARK    00 78 03 E8 00 64
+MID     00 78 03 E8 01 f4
+BRIGHT  00 78 03 E8 03 e8
+
+
+BLUE    00 F0 03 E8 03 E8
+DARK    00 F0 03 E8 00 64
+MID     00 F0 03 E8 02 58
+BRIGHT  00 F0 03 E8 03 E8
+
+
+
+RED     00 00 03 E8 03 E8
+GREEN   00 78 03 E8 03 E8
+BLUE    00 F0 03 E8 03 E8
+YELLOW  00 3C 03 E8 03 E8
+PINK    01 2C 03 E8 03 E8
+TURQOISE00 96 03 E8 03 E8
+
+
+first two bytes look like a flag to toggle the "higher" Hue areas (i.e. anything above 255)
+so H300 would have the flag at 01 and the next two bytes at 300-255=>45
+
+second two bytes are Hue value
+
+
