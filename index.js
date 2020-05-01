@@ -17,6 +17,10 @@ devices.forEach(d => {
     for (let p in d.properties) {
         d.reverseProperties[d.properties[p]] = p;
     }
+    d.reverseScenes = {};
+    for (let s in d.scenes) {
+        d.reverseScenes[d.scenes[s]] = s;
+    }
     devicesById[d.id] = d;
 });
 
@@ -50,7 +54,8 @@ app.get("/devices", (req, res) => {
             properties: dev.properties || {},
             reverseProperties: dev.reverseProperties || {},
             modes: dev.modes || [],
-            scenes: dev.scenes || []
+            scenes: dev.scenes || {},
+            reverseScenes: dev.reverseScenes || {}
         })
     }
 
