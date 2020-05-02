@@ -247,7 +247,7 @@ TuyaColorLight.prototype.parseColorString = function (version, colorStr) {
         console.log("parsed hex1: "+JSON.stringify(hex1));
         let hex2 = convert.hex.hsl(hex2Str);
         console.log("parsed hex2: "+JSON.stringify(hex2));
-        let br = this._reverseAlphaHex(brStr)*2;
+        let br = this._reverseAlphaHex(brStr);
         console.log("parsedBrightness: " + br);
 
         this.setHSL(hex1[0], hex1[1], hex2[2]);
@@ -270,7 +270,7 @@ TuyaColorLight.prototype.parseColorString = function (version, colorStr) {
         console.log(s);
         console.log(l)
 
-        this.setHSL(h, s, l*2);
+        this.setHSL(h, s, l);
 
         return this;
     }

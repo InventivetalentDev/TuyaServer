@@ -110,3 +110,11 @@ ff    ffff  01 63   00      ff - ceiling    0
 OFF - doesn't affect color it seems
 0002000003e8 - strip
 ffffff016300ff - ceiling
+
+
+
+
+
+
+000003e801f4
+000003e803e8

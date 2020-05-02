@@ -18,12 +18,13 @@
 
             </div>
             <div class="divider"></div>
+            <br/>
             <div class="device_error" id="device_error" style="display: none;">
                 Device Error! :(
             </div>
             <div class="controls_container" id="device_controls" style="display: none;">
                 <div class="row">
-                    <div class="input-field">
+                    <div class="input-field col s12 m6">
                         <div class="switch">
                             <label>
                                 Off
@@ -33,22 +34,39 @@
                             </label>
                         </div>
                     </div>
-                </div>
-                <div class="row">
                     <div class="input-field col s12 m6">
                         <select id="device_mode_select">
                         </select>
                         <label>Mode</label>
                     </div>
+                </div>
+                <br/>
+                <!-- Dynamic Sections based on mode -->
+                <div class="row scene_container" id="scene_container">
                     <div class="input-field col s12 m6">
                         <select id="device_scene_select">
                         </select>
                         <label>Scene</label>
                     </div>
                 </div>
-                <div class="row">
-                    <div class="input-field">
-                        <div id="device_color"></div>
+                <div class="row color_container" id="color_container">
+                    <div>
+                        <p class="range-field">
+                            <label>Hue</label>
+                            <input type="range" class="device_color_range" id="device_color_hue" min="0" max="360" />
+                        </p>
+                    </div>
+                    <div>
+                        <p class="range-field">
+                            <label>Saturation</label>
+                            <input type="range" class="device_color_range" id="device_color_saturation" min="0" max="100" />
+                        </p>
+                    </div>
+                    <div>
+                        <p class="range-field">
+                            <label>Lightness</label>
+                            <input type="range" class="device_color_range" id="device_color_lightness" min="1" max="100" />
+                        </p>
                     </div>
                 </div>
             </div>
@@ -131,19 +149,35 @@
             $("#device_mode_select").on("change", function () {
                 updateDeviceStatus("mode", this.value);
 
-                $("#device_scene_select").prop("disabled", this.value !== "scene")
-                $("#device_scene_select").formSelect();
+                refreshModeDisplay(this.value);
+            });
 
-                if (this.value !== "colour") {
-                    pickr.disable()
-                } else {
-                    pickr.enable();
-                }
+            $("#device_color_hue, #device_color_saturation, #device_color_lightness").on("change",function () {
+                updateDeviceStatus("color", [parseInt($("#device_color_hue").val()), parseInt($("#device_color_saturation").val()), parseInt($("#device_color_lightness").val())])
             });
 
             $("#device_scene_select").on("change", function () {
                 updateDeviceStatus("scene", this.value);
             });
+
+            function refreshModeDisplay(mode) {
+                $("#device_scene_select").prop("disabled", mode !== "scene")
+                $("#device_scene_select").formSelect();
+
+                $(".device_color_range").prop("disabled", mode !== "colour");
+
+                if (mode !== "scene") {
+                    $("#scene_container").hide();
+                } else {
+                    $("#scene_container").show();
+                }
+
+                if (mode !== "colour") {
+                    $("#color_container").hide();
+                } else {
+                    $("#color_container").show();
+                }
+            }
 
             function getDeviceStatus() {
                 $("#device_controls").hide();
@@ -162,8 +196,11 @@
                     let toggle = status.dps["toggle"];
                     $("#device_toggle").prop("checked", toggle);
 
-                    let color = status.dps["color_hex"];
-                    createPickr("#" + color);
+                    let color = status.dps["color_hsl"];
+                    // createPickr("#" + color);
+                    $("#device_color_hue").val(color[0]);
+                    $("#device_color_saturation").val(color[1]);
+                    $("#device_color_lightness").val(color[2]);
 
                     let $modeSelect = $("#device_mode_select");
                     $modeSelect.empty();
@@ -174,11 +211,12 @@
 
                     let $sceneSelect = $("#device_scene_select");
                     $sceneSelect.empty();
-                    $sceneSelect.prop("disabled", status.dps.mode !== "scene");
                     Object.keys(status.scenes).forEach(m => {
                         $sceneSelect.append('<option value="' + status.scenes[m] + '" ' + (status.dps.scene === status.scenes[m] ? 'selected' : '') + '>' + m + '</option>')
                     });
                     $sceneSelect.formSelect();
+
+                    refreshModeDisplay(status.dps.mode);
                 }).fail(status => {
                     console.warn(status);
                     $("#device_controls").hide();
