@@ -4,7 +4,6 @@
         <title>TuyaServer</title>
 
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/themes/monolith.min.css"/> <!-- 'monolith' theme -->
         <style>
             .device_card {
                 cursor: pointer;
@@ -104,7 +103,6 @@
 
         <script src="https://code.jquery.com/jquery-3.5.0.min.js" integrity="sha256-xNzN2a4ltkB44Mc/Jz3pT4iU1cmeR0FkXs4pru/JxaQ=" crossorigin="anonymous"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/@simonwep/pickr/dist/pickr.min.js"></script>
         <script>
             let selectedDevice = "";
             let deviceProperties = {};
@@ -131,46 +129,6 @@
                 getDeviceStatus();
             });
 
-
-            let pickr;
-
-            function createPickr(color = "#ff5c45") {
-                console.log("create pickr " + color)
-                $("#device_color").empty().append("<div id='device_color_inner'></div>")
-
-                // Simple example, see optional options for more configuration.
-                pickr = Pickr.create({
-                    el: '#device_color_inner',
-                    theme: 'monolith', // or 'monolith', or 'nano'
-
-                    default: color,
-
-                    components: {
-
-                        // Main components
-                        preview: true,
-                        opacity: false,
-                        hue: true,
-
-                        // Input / output Options
-                        interaction: {
-                            hex: true,
-                            rgba: true,
-                            hsla: true,
-                            hsva: false,
-                            cmyk: false,
-                            input: true,
-                            clear: false,
-                            save: true
-                        }
-                    }
-                });
-
-                pickr.on("save", function (color) {
-                    updateDeviceStatus("color", color.toHEXA().toString());
-                });
-                return pickr;
-            }
 
             $("#device_toggle").on("change", function () {
                 updateDeviceStatus("toggle", this.checked);
