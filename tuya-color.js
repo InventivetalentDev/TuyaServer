@@ -305,9 +305,9 @@ TuyaColorLight.prototype.getColorString = function (version) {
 
 
         /// HHHH SSSS LLLL
-        let h = color.H.toString(16);
-        let s = Math.round(color.S/100*1000).toString(16);
-        let l = Math.round(brightness/100*1000).toString(16);
+        let h = (color.H||0).toString(16);
+        let s = Math.round((color.S||0)/100*1000).toString(16);
+        let l = Math.round((brightness||0)/100*1000).toString(16);
         console.log("HSL");
         console.log(h);
         console.log(s);
