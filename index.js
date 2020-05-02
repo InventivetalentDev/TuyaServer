@@ -75,6 +75,9 @@ function initDevice(dev) {
             device.disconnect();
             delete deviceCache[dev.id];
         }, 10000);
+        device.on("disconnect",()=>{
+            delete deviceCache[dev.id];
+        })
     }
     return device;
 }
@@ -134,7 +137,7 @@ function setDeviceData(dev, data) {
             let device = initDevice(dev);
 
             device.on("error", (err) => {
-                console.log(err);
+                console.warn(err);
                 reject(err);
             });
 
@@ -167,7 +170,7 @@ function getDeviceData(dev) {
             let device = initDevice(dev);
 
             device.on("error", (err) => {
-                console.log(err);
+                console.warn(err);
                 reject(err);
             });
 
@@ -192,7 +195,7 @@ function getDeviceData(dev) {
 }
 
 
-app.get("/device/:id/:dps?", (req, res) => {
+app.get("/device/:id", (req, res) => {
     if (!devicesById.hasOwnProperty(req.params.id)) {
         res.status(404).json({err: "not found"});
         return;
@@ -205,7 +208,7 @@ app.get("/device/:id/:dps?", (req, res) => {
         data.scenes = dev.scenes;
         res.json(data);
     }).catch(err=>{
-        res.status(500).json({success:false,err: err})
+        res.status(500).json({success:false,err: err.message})
     })
 });
 
@@ -220,7 +223,7 @@ app.put("/device/:id", (req, res) => {
     setDeviceData(dev, req.body).then(resp => {
         res.json({success: true, response: resp})
     }).catch((err) => {
-        res.status(500).json({success:false,err: err})
+        res.status(500).json({success:false,err: err.message})
     })
 
 });
