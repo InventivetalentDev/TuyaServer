@@ -197,9 +197,10 @@ app.get("/device/:id/:dps?", (req, res) => {
     let dev = devicesById[req.params.id];
 
     getDeviceData(dev).then(data=>{
+        data.success = true;
         res.json(data);
     }).catch(err=>{
-        res.status(500).json({err: err})
+        res.status(500).json({success:false,err: err})
     })
 });
 
@@ -214,7 +215,7 @@ app.put("/device/:id", (req, res) => {
     setDeviceData(dev, req.body).then(resp => {
         res.json({success: true, response: resp})
     }).catch((err) => {
-        res.status(500).json({err: err})
+        res.status(500).json({success:false,err: err})
     })
 
 });
