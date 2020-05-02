@@ -76,6 +76,55 @@ function initDevice(dev) {
     return device;
 }
 
+function mapDpsNamesToIds(dev, setMap) {
+    if (setMap["color"]) {
+        let col = new TuyaColor();
+        col.colorMode = "colour";
+        if (typeof setMap["color"] === "string") {
+            if (setMap["color"].startsWith("#")) {
+                col.setColor(setMap["color"]);
+            }
+            if (setMap["color"].indexOf(",") !== -1) {
+                let split = setMap["color"].split(",");
+                col.setHSL(parseInt(split[0]), parseInt(split[1]), parseInt(split[2]));
+            }
+        }
+        if (typeof setMap["color"] === "object") {
+            col.setHSL(setMap["color"][0] || setMap["color"].h, setMap["color"][1] || setMap["color"].s, setMap["color"][2] || setMap["color"].l);
+        }
+        let str = col.getColorString(dev.colorConversion);
+        console.log("Converted " + JSON.stringify(setMap["color"]) + " to " + str + " via " + dev.colorConversion);
+        setMap["color"] = str;
+    }
+
+    for (let n in setMap) {
+        if (dev.properties.hasOwnProperty(n)) {
+            setMap[dev.properties[n]] = setMap[n];
+            delete setMap[n];
+        }
+    }
+
+    return setMap;
+}
+
+function mapDpsIdsToNames(dev, dps) {
+    for (let s in dps) {
+        if (dev.reverseProperties.hasOwnProperty(s)) {
+            let reverseProp = dev.reverseProperties[s];
+            dps[reverseProp] = dps[s];
+
+            if (reverseProp === "color") {
+                let col = new TuyaColor();
+                col.colorMode = "colour"
+                col.parseColorString(dev.colorConversion, dps[s]);
+                dps["color_hex"] = col.getHex();
+                dps["color_hsl"] = col.getHSL();
+            }
+        }
+    }
+
+    return dps;
+}
 
 function setDeviceData(dev, data) {
     return new Promise((resolve, reject) => {
@@ -93,32 +142,7 @@ function setDeviceData(dev, data) {
                     let setMap = data;
                     console.log("original set map: " + JSON.stringify(setMap))
 
-                    if (setMap["color"]) {
-                        let col = new TuyaColor();
-                        col.colorMode = "colour";
-                        if (typeof setMap["color"] === "string") {
-                            if (setMap["color"].startsWith("#")) {
-                                col.setColor(setMap["color"]);
-                            }
-                            if (setMap["color"].indexOf(",") !== -1) {
-                                let split = setMap["color"].split(",");
-                                col.setHSL(parseInt(split[0]), parseInt(split[1]), parseInt(split[2]));
-                            }
-                        }
-                        if (typeof setMap["color"] === "object") {
-                            col.setHSL(setMap["color"][0] || setMap["color"].h, setMap["color"][1] || setMap["color"].s, setMap["color"][2] || setMap["color"].l);
-                        }
-                        let str = col.getColorString(dev.colorConversion);
-                        console.log("Converted " + JSON.stringify(setMap["color"]) + " to " + str + " via " + dev.colorConversion);
-                        setMap["color"] = str;
-                    }
-
-                    for (let n in setMap) {
-                        if (dev.properties.hasOwnProperty(n)) {
-                            setMap[dev.properties[n]] = setMap[n];
-                            delete setMap[n];
-                        }
-                    }
+                    setMap = mapDpsNamesToIds(dev, setMap);
 
                     console.log("final set map: " + JSON.stringify(setMap));
                     device.set({
@@ -150,19 +174,8 @@ function getDeviceData(dev) {
                     device.get({schema: true}).then(status => {
                         console.log("got " + JSON.stringify(status));
 
-                        for (let s in status.dps) {
-                            if (dev.reverseProperties.hasOwnProperty(s)) {
-                                status.dps[dev.reverseProperties[s]] = status.dps[s];
+                        status.dps = mapDpsIdsToNames(dev, status.dps);
 
-                                if (dev.reverseProperties[s] === "color") {
-                                    let col = new TuyaColor();
-                                    col.colorMode = "colour"
-                                    col.parseColorString(dev.colorConversion, status.dps[s]);
-                                    status.dps["color_hex"] = col.getHex();
-                                    status.dps["color_hsl"] = col.getHSL();
-                                }
-                            }
-                        }
                         status.id = dev.id;
                         status.name = dev.name;
                         resolve(status);
