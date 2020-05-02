@@ -62,6 +62,120 @@ app.get("/devices", (req, res) => {
     res.json(devices);
 });
 
+
+function initDevice(dev) {
+    let device = deviceCache[dev.id];
+    if (!device) {
+        device = new TuyAPI(dev);
+
+        setTimeout(() => {
+            device.disconnect();
+            delete deviceCache[dev.id];
+        }, 10000);
+    }
+    return device;
+}
+
+
+function setDeviceData(dev, data) {
+    return new Promise((resolve, reject) => {
+            let device = initDevice(dev);
+
+            device.on("error", (err) => {
+                console.log(err);
+                reject(err);
+            });
+
+            device.find().then(() => {
+                deviceCache[dev.id] = device;
+                device.connect().then(() => {
+
+                    let setMap = data;
+                    console.log("original set map: " + JSON.stringify(setMap))
+
+                    if (setMap["color"]) {
+                        let col = new TuyaColor();
+                        col.colorMode = "colour";
+                        if (typeof setMap["color"] === "string") {
+                            if (setMap["color"].startsWith("#")) {
+                                col.setColor(setMap["color"]);
+                            }
+                            if (setMap["color"].indexOf(",") !== -1) {
+                                let split = setMap["color"].split(",");
+                                col.setHSL(parseInt(split[0]), parseInt(split[1]), parseInt(split[2]));
+                            }
+                        }
+                        if (typeof setMap["color"] === "object") {
+                            col.setHSL(setMap["color"][0] || setMap["color"].h, setMap["color"][1] || setMap["color"].s, setMap["color"][2] || setMap["color"].l);
+                        }
+                        let str = col.getColorString(dev.colorConversion);
+                        console.log("Converted " + JSON.stringify(setMap["color"]) + " to " + str + " via " + dev.colorConversion);
+                        setMap["color"] = str;
+                    }
+
+                    for (let n in setMap) {
+                        if (dev.properties.hasOwnProperty(n)) {
+                            setMap[dev.properties[n]] = setMap[n];
+                            delete setMap[n];
+                        }
+                    }
+
+                    console.log("final set map: " + JSON.stringify(setMap));
+                    device.set({
+                        multiple: true,
+                        data: setMap
+                    }).then(resp => {
+                        console.log("SET response: " + JSON.stringify(resp));
+                        resolve(resp);
+                    });
+                });
+            });
+
+        }
+    )
+}
+
+function getDeviceData(dev) {
+    return new Promise((resolve, reject) => {
+            let device = initDevice(dev);
+
+            device.on("error", (err) => {
+                console.log(err);
+                reject(err);
+            });
+
+            device.find().then(() => {
+                deviceCache[dev.id] = device;
+                device.connect().then(() => {
+                    device.get({schema: true}).then(status => {
+                        console.log("got " + JSON.stringify(status));
+
+                        for (let s in status.dps) {
+                            if (dev.reverseProperties.hasOwnProperty(s)) {
+                                status.dps[dev.reverseProperties[s]] = status.dps[s];
+
+                                if (dev.reverseProperties[s] === "color") {
+                                    let col = new TuyaColor();
+                                    col.colorMode = "colour"
+                                    col.parseColorString(dev.colorConversion, status.dps[s]);
+                                    status.dps["color_hex"] = col.getHex();
+                                    status.dps["color_hsl"] = col.getHSL();
+                                }
+                            }
+                        }
+                        status.id = dev.id;
+                        status.name = dev.name;
+                        resolve(status);
+
+                    });
+                });
+            });
+
+        }
+    )
+}
+
+
 app.get("/device/:id/:dps?", (req, res) => {
     if (!devicesById.hasOwnProperty(req.params.id)) {
         res.status(404).json({err: "not found"});
@@ -69,75 +183,13 @@ app.get("/device/:id/:dps?", (req, res) => {
     }
     let dev = devicesById[req.params.id];
 
-    try {
-        let device = deviceCache[req.params.id];
-        if (!device) {
-            device = new TuyAPI(dev);
-        }
-
-        device.on("error", (err) => {
-            console.log(err);
-            res.status(500).json({err: err})
-        });
-
-        let doStuff = async () => {
-            try {
-                await device.find();
-                deviceCache[req.params.id] = device;
-                await device.connect();
-
-                let g = {};
-                if (req.params.dps) {
-                    if (dev.properties.hasOwnProperty(req.params.dps)) {
-                        g.dps = dev.properties[req.params.dps];
-                    } else {
-                        g.dps = req.params.dps;
-                    }
-                } else {
-                    g.schema = true;
-                }
-                let status = await device.get(g);
-                console.log("got " + JSON.stringify(status));
-                for (let s in status.dps) {
-                    if (dev.reverseProperties.hasOwnProperty(s)) {
-                        status.dps[dev.reverseProperties[s]] = status.dps[s];
-
-                        if (dev.reverseProperties[s] === "color") {
-                            let col = new TuyaColor();
-                            col.colorMode = "colour"
-                            col.parseColorString(dev.colorConversion, status.dps[s]);
-                            status.dps["color_hex"] = col.getHex();
-                            status.dps["color_hsl"] = col.getHSL();
-                        }
-                    }
-                }
-                if (req.params.dps) {
-                    res.json({
-                        name: dev.name,
-                        dps: req.params.dps,
-                        value: status || null
-                    });
-                } else {
-                    status.name = dev.name;
-                    res.json(status);
-                }
-
-                setTimeout(() => {
-                    device.disconnect();
-                    delete deviceCache[req.params.id];
-                }, 5000);
-            } catch (e) {
-                console.log(e);
-                res.status(500).json({err: e.message})
-            }
-        };
-        doStuff();
-
-    } catch (e) {
-        console.log(e);
-        res.status(500).json({err: e.message})
-    }
+    getDeviceData(dev).then(data=>{
+        res.json(data);
+    }).catch(err=>{
+        res.status(500).json({err: err})
+    })
 });
+
 
 app.put("/device/:id", (req, res) => {
     if (!devicesById.hasOwnProperty(req.params.id)) {
@@ -146,75 +198,11 @@ app.put("/device/:id", (req, res) => {
     }
     let dev = devicesById[req.params.id];
 
-    let device = deviceCache[req.params.id];
-    if (!device) {
-        device = new TuyAPI(dev);
-    }
-
-    device.on("error", (err) => {
-        console.log(err);
+    setDeviceData(dev, req.body).then(resp => {
+        res.json({success: true, response: resp})
+    }).catch((err) => {
         res.status(500).json({err: err})
-    });
-
-    let doStuff = async () => {
-        try {
-            await device.find();
-            deviceCache[req.params.id] = device;
-            await device.connect();
-
-            let setMap = req.body;
-            console.log("original set map: " + JSON.stringify(setMap))
-
-            if (setMap["color"]) {
-                let col = new TuyaColor();
-                col.colorMode = "colour";
-                if(typeof setMap["color"] ==="string") {
-                    if (setMap["color"].startsWith("#")) {
-                        col.setColor(setMap["color"]);
-                    }
-                    if (setMap["color"].indexOf(",") !== -1) {
-                        let split = setMap["color"].split(",");
-                        col.setHSL(parseInt(split[0]), parseInt(split[1]), parseInt(split[2]));
-                    }
-                }
-                if (typeof setMap["color"] === "object") {
-                    col.setHSL(setMap["color"][0] || setMap["color"].h, setMap["color"][1] || setMap["color"].s, setMap["color"][2] || setMap["color"].l);
-                }
-                let str = col.getColorString(dev.colorConversion);
-                console.log("Converted " + JSON.stringify(setMap["color"]) + " to " + str + " via " + dev.colorConversion);
-                setMap["color"] = str;
-            }
-
-
-            // if(dev.properties.hasOwnProperty(req.params.dps)){
-            for (let n in setMap) {
-                if (dev.properties.hasOwnProperty(n)) {
-                    setMap[dev.properties[n]] = setMap[n];
-                    delete setMap[n];
-                }
-            }
-            // }
-
-
-            console.log("final set map: " + JSON.stringify(setMap));
-            await device.set({
-                multiple: true,
-                data: setMap
-            });
-            // let status = await device.get({schema: true});
-            // console.log("got " + JSON.stringify(status));
-            res.json({success: true, set: setMap});
-
-            setTimeout(() => {
-                device.disconnect();
-                delete deviceCache[req.params.id];
-            }, 5000);
-        } catch (e) {
-            console.log(e);
-            res.status(500).json({err: e.message})
-        }
-    };
-    doStuff();
+    })
 
 });
 
