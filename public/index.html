@@ -49,6 +49,7 @@
                         <label>Scene</label>
                     </div>
                 </div>
+
                 <div class="row color_container" id="color_container">
                     <div>
                         <p class="range-field">
@@ -66,6 +67,21 @@
                         <p class="range-field">
                             <label>Lightness</label>
                             <input type="range" class="device_color_range" id="device_color_lightness" min="1" max="100" />
+                        </p>
+                    </div>
+                </div>
+
+                <div class="row white_container" id="white_container">
+                    <div>
+                        <p class="range-field">
+                            <label>White Temperature</label>
+                            <input type="range" class="device_white_range" id="device_white_temperature" min="0" max="255" />
+                        </p>
+                    </div>
+                    <div>
+                        <p class="range-field">
+                            <label>Brightness</label>
+                            <input type="range" class="device_white_range" id="device_white_brightness" min="25" max="255" />
                         </p>
                     </div>
                 </div>
@@ -156,6 +172,13 @@
                 updateDeviceStatus("color", [parseInt($("#device_color_hue").val()), parseInt($("#device_color_saturation").val()), parseInt($("#device_color_lightness").val())])
             });
 
+            $("#device_white_brightness").on("change",function () {
+                updateDeviceStatus("white_brightness", parseInt(this.value));
+            })
+            $("#device_white_temperature").on("change",function () {
+                updateDeviceStatus("white_temp", parseInt(this.value));
+            })
+
             $("#device_scene_select").on("change", function () {
                 updateDeviceStatus("scene", this.value);
             });
@@ -165,6 +188,8 @@
                 $("#device_scene_select").formSelect();
 
                 $(".device_color_range").prop("disabled", mode !== "colour");
+
+                $(".device_white_range").prop("disabled", mode !== "white");
 
                 if (mode !== "scene") {
                     $("#scene_container").hide();
@@ -176,6 +201,12 @@
                     $("#color_container").hide();
                 } else {
                     $("#color_container").show();
+                }
+
+                if (mode !== "white") {
+                    $("#white_container").hide()
+                }else{
+                    $("#white_container").show();
                 }
             }
 
@@ -201,6 +232,9 @@
                     $("#device_color_hue").val(color[0]);
                     $("#device_color_saturation").val(color[1]);
                     $("#device_color_lightness").val(color[2]);
+
+                    $("#device_white_brightness").val(status.dps["white_brightness"]);
+                    $("#device_white_temperature").val(status.dps["white_temp"]);
 
                     let $modeSelect = $("#device_mode_select");
                     $modeSelect.empty();
