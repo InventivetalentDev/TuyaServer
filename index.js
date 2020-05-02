@@ -198,6 +198,8 @@ app.get("/device/:id/:dps?", (req, res) => {
 
     getDeviceData(dev).then(data=>{
         data.success = true;
+        data.modes = dev.modes;
+        data.scenes = dev.scenes;
         res.json(data);
     }).catch(err=>{
         res.status(500).json({success:false,err: err})

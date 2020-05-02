@@ -12,24 +12,44 @@
         </style>
     </head>
     <body>
+        <br/>
         <div class="container">
             <div class="row" id="device_container">
 
             </div>
             <div class="divider"></div>
-            <div class="controls_container">
-                <div>
-                    <div class="switch">
-                        <label>
-                            Off
-                            <input type="checkbox" id="device_toggle">
-                            <span class="lever"></span>
-                            On
-                        </label>
+            <div class="device_error" id="device_error" style="display: none;">
+                Device Error! :(
+            </div>
+            <div class="controls_container" id="device_controls" style="display: none;">
+                <div class="row">
+                    <div class="input-field">
+                        <div class="switch">
+                            <label>
+                                Off
+                                <input type="checkbox" id="device_toggle">
+                                <span class="lever"></span>
+                                On
+                            </label>
+                        </div>
                     </div>
                 </div>
-                <div>
-                    <div id="device_color"></div>
+                <div class="row">
+                    <div class="input-field col s12 m6">
+                        <select id="device_mode_select">
+                        </select>
+                        <label>Mode</label>
+                    </div>
+                    <div class="input-field col s12 m6">
+                        <select id="device_scene_select">
+                        </select>
+                        <label>Scene</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="input-field">
+                        <div id="device_color"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -46,7 +66,7 @@
                 devices.forEach(d => {
                     deviceProperties[d.id] = d.properties;
                     $("#device_container").append('<div class="col s3 device_card_wrapper">' +
-                        '  <div class="card device_card" data-device-id="' + d.id + '" data-device-name="' + d.name + '">' +
+                        '  <div class="card device_card z-depth-1" data-device-id="' + d.id + '" data-device-name="' + d.name + '">' +
                         '    <div class="card-content">' +
                         '      <div class="card-title">' + d.name + '</div>' +
                         '    </div>' +
@@ -64,17 +84,18 @@
             });
 
 
+            let pickr;
 
-            function createPickr(color="#ff5c45") {
-                console.log("create pickr "+color)
+            function createPickr(color = "#ff5c45") {
+                console.log("create pickr " + color)
                 $("#device_color").empty().append("<div id='device_color_inner'></div>")
 
                 // Simple example, see optional options for more configuration.
-                const pickr = Pickr.create({
+                pickr = Pickr.create({
                     el: '#device_color_inner',
                     theme: 'monolith', // or 'monolith', or 'nano'
 
-                    default:color,
+                    default: color,
 
                     components: {
 
@@ -100,24 +121,68 @@
                 pickr.on("save", function (color) {
                     updateDeviceStatus("color", color.toHEXA().toString());
                 });
+                return pickr;
             }
 
             $("#device_toggle").on("change", function () {
                 updateDeviceStatus("toggle", this.checked);
             });
 
+            $("#device_mode_select").on("change", function () {
+                updateDeviceStatus("mode", this.value);
 
+                $("#device_scene_select").prop("disabled", this.value !== "scene")
+                $("#device_scene_select").formSelect();
+
+                if (this.value !== "colour") {
+                    pickr.disable()
+                } else {
+                    pickr.enable();
+                }
+            });
+
+            $("#device_scene_select").on("change", function () {
+                updateDeviceStatus("scene", this.value);
+            });
 
             function getDeviceStatus() {
+                $("#device_controls").hide();
                 if (!selectedDevice || selectedDevice.length < 1) {
                     return;
                 }
-                $.ajax("/device/"+selectedDevice+"?token="+localStorage.token).done(status=>{
+                $.ajax("/device/" + selectedDevice + "?token=" + localStorage.token).done(status => {
+                    if (status.success) {
+                        $("#device_controls").show();
+                        $("#device_error").hide();
+
+                        $(".device_card").removeClass("z-depth-3");
+                        $(".device_card[data-device-id='" + status.id + "']").addClass("z-depth-3");
+                    }
+
                     let toggle = status.dps["toggle"];
                     $("#device_toggle").prop("checked", toggle);
 
                     let color = status.dps["color_hex"];
-                   createPickr("#"+color);
+                    createPickr("#" + color);
+
+                    let $modeSelect = $("#device_mode_select");
+                    $modeSelect.empty();
+                    status.modes.forEach(m => {
+                        $modeSelect.append('<option value="' + m + '" ' + (status.dps.mode === m ? 'selected' : '') + '>' + m + '</option>')
+                    })
+                    $modeSelect.formSelect();
+
+                    let $sceneSelect = $("#device_scene_select");
+                    $sceneSelect.empty();
+                    $sceneSelect.prop("disabled", status.dps.mode !== "scene");
+                    Object.keys(status.scenes).forEach(m => {
+                        $sceneSelect.append('<option value="' + status.scenes[m] + '" ' + (status.dps.scene === status.scenes[m] ? 'selected' : '') + '>' + m + '</option>')
+                    });
+                    $sceneSelect.formSelect();
+                }).fail(status => {
+                    console.warn(status);
+                    $("#device_controls").hide();
+                    $("#device_error").show();
                 })
             }
 
@@ -128,10 +193,10 @@
                 let d = {};
                 d[key] = value;
                 $.ajax({
-                    contentType:"application/json",
-                    url:"/device/"+selectedDevice+"?token="+localStorage.token,
+                    contentType: "application/json",
+                    url: "/device/" + selectedDevice + "?token=" + localStorage.token,
                     type: "PUT",
-                    data:JSON.stringify(d)
+                    data: JSON.stringify(d)
                 })
             }
         </script>
