@@ -168,12 +168,14 @@ app.put("/device/:id", (req, res) => {
             if (setMap["color"]) {
                 let col = new TuyaColor();
                 col.colorMode = "colour";
-                if (setMap["color"].startsWith("#")) {
-                    col.setColor(setMap["color"]);
-                }
-                if (setMap["color"].indexOf(",") !== -1) {
-                    let split = setMap["color"].split(",");
-                    col.setHSL(parseInt(split[0]), parseInt(split[1]), parseInt(split[2]));
+                if(typeof setMap["color"] ==="string") {
+                    if (setMap["color"].startsWith("#")) {
+                        col.setColor(setMap["color"]);
+                    }
+                    if (setMap["color"].indexOf(",") !== -1) {
+                        let split = setMap["color"].split(",");
+                        col.setHSL(parseInt(split[0]), parseInt(split[1]), parseInt(split[2]));
+                    }
                 }
                 if (typeof setMap["color"] === "object") {
                     col.setHSL(setMap["color"][0] || setMap["color"].h, setMap["color"][1] || setMap["color"].s, setMap["color"][2] || setMap["color"].l);
@@ -201,7 +203,7 @@ app.put("/device/:id", (req, res) => {
             });
             // let status = await device.get({schema: true});
             // console.log("got " + JSON.stringify(status));
-            res.json({success: true});
+            res.json({success: true, set: setMap});
 
             setTimeout(() => {
                 device.disconnect();
