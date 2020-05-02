@@ -184,6 +184,8 @@ function getDeviceData(dev) {
 
                         status.id = dev.id;
                         status.name = dev.name;
+                        status.modes = dev.modes;
+                        status.scenes = dev.scenes;
                         resolve(status);
 
                     });
@@ -204,8 +206,6 @@ app.get("/device/:id", (req, res) => {
 
     getDeviceData(dev).then(data=>{
         data.success = true;
-        data.modes = dev.modes;
-        data.scenes = dev.scenes;
         res.json(data);
     }).catch(err=>{
         res.status(500).json({success:false,err: err.message})
@@ -228,7 +228,7 @@ app.put("/device/:id", (req, res) => {
 
 });
 
-app.listen(port, () => console.log(`Example app listening at http://localhost:${ port }`))
+app.listen(port, () => console.log(`TuyaServer app listening at http://localhost:${ port }`))
 
 // const device = new TuyAPI(dev);
 //
