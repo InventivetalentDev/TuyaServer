@@ -54,6 +54,9 @@ app.get("/devices", (req, res) => {
             properties: dev.properties || {},
             reverseProperties: dev.reverseProperties || {},
             modes: dev.modes || [],
+            supportsColor: dev.modes && dev.modes.indexOf("colour") !== -1,
+            supportsWhite: dev.modes && dev.modes.indexOf("white") !== -1,
+            supportsScenes: dev.modes && dev.modes.indexOf("scene") !== -1,
             scenes: dev.scenes || {},
             reverseScenes: dev.reverseScenes || {}
         })
