@@ -29,6 +29,36 @@ const groups = require("./groups");
 const groupsById = {};
 groups.forEach(g => {
     g.joinedDeviceIds = g.devices.join(",");
+
+    g.modes = [];
+    g.scenes = [];
+    g.properties = [];
+
+    for (let devId1 of g.devices) {
+        let dev1 = devicesById[devId1];
+
+        for (let devId2 of g.devices) {
+            if(devId2 === devId1)continue;
+            let dev2 = devicesById[devId2];
+
+            for (let mode of dev2.modes) {
+                if (g.modes.indexOf(mode) === -1 && dev1.modes.indexOf(mode) !== -1) {
+                    g.modes.push(mode);
+                }
+            }
+            for (let scene in dev2.scenes) {
+                if (g.scenes.indexOf(scene) === -1 && dev1.scenes.hasOwnProperty(scene)) {
+                    g.scenes.push(scene);
+                }
+            }
+            for(let prop in dev2.properties) {
+                if (g.properties.indexOf(prop) === -1 && dev1.properties.hasOwnProperty(prop)) {
+                    g.properties.push(prop);
+                }
+            }
+        }
+    }
+
    groupsById[g.id] = g;
 });
 
