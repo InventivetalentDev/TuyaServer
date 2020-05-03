@@ -24,6 +24,14 @@ devices.forEach(d => {
     devicesById[d.id] = d;
 });
 
+
+const groups = require("./groups");
+const groupsById = {};
+groups.forEach(g => {
+    g.joinedDeviceIds = g.devices.join(",");
+   groupsById[g.id] = g;
+});
+
 const deviceCache = {};
 
 app.use((req, res, next) => {
@@ -63,6 +71,11 @@ app.get("/devices", (req, res) => {
     }
 
     res.json(devices);
+});
+
+app.get("/groups", (req, res) => {
+    let groups = Object.values(groupsById);
+    res.json(groups);
 });
 
 
@@ -210,8 +223,39 @@ function uniqueArray(arr) {
 
 app.get("/device/:id", (req, res) => {
     let id = req.params.id;
-    if (id.indexOf(",") !== -1) {// multiple get requests
-        let split = uniqueArray(id.split(","));
+    handleDeviceGet(req, res, id);
+});
+
+app.get("/group/:id", (req, res) => {
+    let id = req.params.id;
+    if (!groupsById.hasOwnProperty(id)) {
+        res.status(404).json({err: "not found"});
+        return;
+    }
+    let grp = groupsById[id];
+
+    handleDeviceGet(req, res, grp.joinedDeviceIds);
+});
+
+app.put("/device/:id", (req, res) => {
+    let id = req.params.id;
+    handleDeviceSet(req, res, id, req.body);
+});
+
+app.put("/group/:id", (req, res) => {
+    let id = req.params.id;
+    if (!groupsById.hasOwnProperty(id)) {
+        res.status(404).json({err: "not found"});
+        return;
+    }
+    let grp = groupsById[id];
+
+    handleDeviceSet(req, res, grp.joinedDeviceIds, req.body);
+});
+
+function handleDeviceGet(req, res, ids) {
+    if (ids.indexOf(",") !== -1) {// multiple get requests
+        let split = uniqueArray(ids.split(","));
         let promises = [];
         let i = 0;
         for (let iid of split) {
@@ -231,11 +275,11 @@ app.get("/device/:id", (req, res) => {
             res.status(500).json({success: false, err: err.message})
         })
     } else {// just one get
-        if (!devicesById.hasOwnProperty(id)) {
+        if (!devicesById.hasOwnProperty(ids)) {
             res.status(404).json({err: "not found"});
             return;
         }
-        let dev = devicesById[id];
+        let dev = devicesById[ids];
 
         getDeviceData(dev).then(data => {
             data.success = true;
@@ -244,13 +288,13 @@ app.get("/device/:id", (req, res) => {
             res.status(500).json({success: false, err: err.message})
         })
     }
-});
+}
 
 
-app.put("/device/:id", (req, res) => {
-    let id = req.params.id;
-    if (id.indexOf(",") !== -1) {// multiple set requests
-        let split = uniqueArray(id.split(","));
+
+function handleDeviceSet(req, res, ids, body) {
+    if (ids.indexOf(",") !== -1) {// multiple set requests
+        let split = uniqueArray(ids.split(","));
         let promises = [];
         let i =0;
         for (let iid of split) {
@@ -259,7 +303,7 @@ app.put("/device/:id", (req, res) => {
 
                 promises.push(new Promise((resolve, reject) => {
                     setTimeout(() => {
-                        setDeviceData(dev,  Object.assign({},req.body)/* clone, or mapping will mess up keys */).then(resolve).catch(reject)
+                        setDeviceData(dev,  Object.assign({}, body)/* clone, or mapping will mess up keys */).then(resolve).catch(reject)
                     }, (i++) * 100);
                 }))
             }
@@ -270,19 +314,19 @@ app.put("/device/:id", (req, res) => {
             res.status(500).json({success: false, err: err.message})
         })
     } else {// just one set
-        if (!devicesById.hasOwnProperty(id)) {
+        if (!devicesById.hasOwnProperty(ids)) {
             res.status(404).json({err: "not found"});
             return;
         }
-        let dev = devicesById[id];
+        let dev = devicesById[ids];
 
-        setDeviceData(dev, req.body).then(resp => {
+        setDeviceData(dev, body).then(resp => {
             res.json({success: true, response: resp})
         }).catch(err => {
             res.status(500).json({success: false, err: err.message})
         })
     }
-});
+}
 
 app.listen(port, () => console.log(`TuyaServer app listening at http://localhost:${ port }`))
 
