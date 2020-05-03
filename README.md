@@ -1,4 +1,5 @@
-#
+# TuyaServer
+Custom REST server & web interface for controlling Tuya-Brand smart lights
 
 
 ## Figuring out the Keys
