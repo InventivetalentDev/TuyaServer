@@ -95,8 +95,7 @@ app.get("/devices", (req, res) => {
             supportsColor: dev.modes && dev.modes.indexOf("colour") !== -1,
             supportsWhite: dev.modes && dev.modes.indexOf("white") !== -1,
             supportsScenes: dev.modes && dev.modes.indexOf("scene") !== -1,
-            scenes: dev.scenes || {},
-            reverseScenes: dev.reverseScenes || {}
+            scenes: Object.keys(dev.scenes) || []
         })
     }
 
@@ -239,7 +238,7 @@ function getDeviceData(dev) {
                         status.id = dev.id;
                         status.name = dev.name;
                         status.modes = dev.modes;
-                        status.scenes = dev.scenes;
+                        status.scenes = Object.keys(dev.scenes);
                         resolve(status);
 
                     });
