@@ -96,8 +96,8 @@ function initDevice(dev) {
     return device;
 }
 
-function mapDpsNamesToIds(dev, setMap) {
-    if (setMap["color"]) {
+function mapDpsNamesToIds(dev, setMap) { // for set requests
+    if (setMap["color"]) {// color hex or object to encoded color data
         let col = new TuyaColor();
         col.colorMode = "colour";
         if (typeof setMap["color"] === "string") {
@@ -116,7 +116,7 @@ function mapDpsNamesToIds(dev, setMap) {
         console.log("Converted " + JSON.stringify(setMap["color"]) + " to " + str + " via " + dev.colorConversion);
         setMap["color"] = str;
     }
-    if (setMap["scene"]) {
+    if (setMap["scene"]) {// scene names to ids
         if (dev.scenes.indexOf(setMap["scene"]) !== -1) {
             setMap["scene"] = dev.scenes[setMap["scene"]];
         }
@@ -132,13 +132,13 @@ function mapDpsNamesToIds(dev, setMap) {
     return setMap;
 }
 
-function mapDpsIdsToNames(dev, dps) {
+function mapDpsIdsToNames(dev, dps) { // for get requests
     for (let s in dps) {
         if (dev.reverseProperties.hasOwnProperty(s)) {
             let reverseProp = dev.reverseProperties[s];
             dps[reverseProp] = dps[s];
 
-            if (reverseProp === "color") {
+            if (reverseProp === "color") {// encoded color to hex and hsl object
                 let col = new TuyaColor();
                 col.colorMode = "colour"
                 col.parseColorString(dev.colorConversion, dps[s]);
