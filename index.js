@@ -272,7 +272,7 @@ app.get("/group/:id", (req, res) => {
     }
     let grp = groupsById[id];
 
-    handleDeviceGet(req, res, grp.joinedDeviceIds);
+    handleDeviceGet(req, res, grp.joinedDeviceIds, true);
 });
 
 app.put("/device/:id", (req, res) => {
@@ -291,7 +291,7 @@ app.put("/group/:id", (req, res) => {
     handleDeviceSet(req, res, grp.joinedDeviceIds, req.body);
 });
 
-function handleDeviceGet(req, res, ids) {
+function handleDeviceGet(req, res, ids, merge = false) {
     if (ids.indexOf(",") !== -1) {// multiple get requests
         let split = uniqueArray(ids.split(","));
         let promises = [];
@@ -308,7 +308,38 @@ function handleDeviceGet(req, res, ids) {
             }
         }
         Promise.all(promises).then(data => {
-            res.json({success: true, data: data});
+            if (merge) {
+                let merged = {
+                    dps:{},
+                    modes: [],
+                    scenes: []
+                };
+                for (let d1 of data) {
+                    for (let d2 of data) {
+                        if(d1 === d2) continue;
+
+                        for (let mode of d2.modes) {
+                            if (merged.modes.indexOf(mode) === -1 && d1.modes.indexOf(mode) !== -1) {
+                                merged.modes.push(mode);
+                            }
+                        }
+                        for (let scene in d2.scenes) {
+                            if (merged.scenes.indexOf(scene) === -1 && d1.scenes.hasOwnProperty(scene)) {
+                                merged.scenes.push(scene);
+                            }
+                        }
+
+                        for (let dp in d2.dps) {
+                            if (!merged.dps.hasOwnProperty(dp) && d1.dps.hasOwnProperty(dp) && d2.dps[dp] === d1.dps[dp]) {
+                                merged.dps[dp] = d2.dps[dp];
+                            }
+                        }
+                    }
+                }
+                res.json({success: true, merged: merged,  data: data});
+            }else {
+                res.json({success: true, data: data});
+            }
         }).catch(err => {
             res.status(500).json({success: false, err: err.message})
         })
