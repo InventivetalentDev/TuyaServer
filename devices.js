@@ -37,7 +37,7 @@ module.exports = [
         scenes: {
             "night":"bd76000168ffff",
             "read":"fffcf70168ffff",
-            "meeting":"cf38000168ffff",
+            "working":"cf38000168ffff",
             "leisure":"3855b40168ffff"
         },
         properties: {
