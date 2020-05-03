@@ -175,6 +175,9 @@ function mapDpsIdsToNames(dev, dps) { // for get requests
                 dps["color_hex"] = col.getHex();
                 dps["color_hsl"] = col.getHSL();
             }
+            if (reverseProp === "scene") {
+                dps["scene_name"] = dev.reverseScenes[dps[s]];
+            }
         }
     }
 
