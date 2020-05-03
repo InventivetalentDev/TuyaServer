@@ -116,6 +116,11 @@ function mapDpsNamesToIds(dev, setMap) {
         console.log("Converted " + JSON.stringify(setMap["color"]) + " to " + str + " via " + dev.colorConversion);
         setMap["color"] = str;
     }
+    if (setMap["scene"]) {
+        if (dev.scenes.indexOf(setMap["scene"]) !== -1) {
+            setMap["scene"] = dev.scenes[setMap["scene"]];
+        }
+    }
 
     for (let n in setMap) {
         if (dev.properties.hasOwnProperty(n)) {
