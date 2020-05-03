@@ -6,9 +6,8 @@ const app = express();
 const bodyParser = require('body-parser');
 app.use(bodyParser.json())
 
-const port = 3201;
-
 const config = require("./config");
+const port = config.port || 3201;
 
 const devices = require("./devices");
 const devicesById = {};
