@@ -70,12 +70,13 @@ function initDevice(dev) {
     let device = deviceCache[dev.id];
     if (!device) {
         device = new TuyAPI(dev);
+        deviceCache[dev.id] = device;
 
         setTimeout(() => {
             device.disconnect();
             delete deviceCache[dev.id];
         }, 10000);
-        device.on("disconnect",()=>{
+        device.on("disconnect", () => {
             delete deviceCache[dev.id];
         })
     }
@@ -134,6 +135,7 @@ function mapDpsIdsToNames(dev, dps) {
 
 function setDeviceData(dev, data) {
     return new Promise((resolve, reject) => {
+        console.log("Set to " + dev.id + "/" + dev.name);
             let device = initDevice(dev);
 
             device.on("error", (err) => {
@@ -167,6 +169,7 @@ function setDeviceData(dev, data) {
 
 function getDeviceData(dev) {
     return new Promise((resolve, reject) => {
+        console.log("Get from " + dev.id + "/" + dev.name);
             let device = initDevice(dev);
 
             device.on("error", (err) => {
@@ -196,36 +199,89 @@ function getDeviceData(dev) {
     )
 }
 
+// https://stackoverflow.com/questions/1960473/get-all-unique-values-in-a-javascript-array-remove-duplicates?page=1&tab=votes#tab-top
+function uniqueArray(arr) {
+    function onlyUnique(value, index, self) {
+        return self.indexOf(value) === index;
+    }
+
+    return arr.filter(onlyUnique);
+}
 
 app.get("/device/:id", (req, res) => {
-    if (!devicesById.hasOwnProperty(req.params.id)) {
-        res.status(404).json({err: "not found"});
-        return;
-    }
-    let dev = devicesById[req.params.id];
+    let id = req.params.id;
+    if (id.indexOf(",") !== -1) {// multiple get requests
+        let split = uniqueArray(id.split(","));
+        let promises = [];
+        let i = 0;
+        for (let iid of split) {
+            if (devicesById.hasOwnProperty(iid)) {
+                let dev = devicesById[iid];
 
-    getDeviceData(dev).then(data=>{
-        data.success = true;
-        res.json(data);
-    }).catch(err=>{
-        res.status(500).json({success:false,err: err.message})
-    })
+                promises.push(new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        getDeviceData(dev).then(resolve).catch(reject)
+                    }, (i++) * 100);
+                }));
+            }
+        }
+        Promise.all(promises).then(data => {
+            res.json({success: true, data: data});
+        }).catch(err => {
+            res.status(500).json({success: false, err: err.message})
+        })
+    } else {// just one get
+        if (!devicesById.hasOwnProperty(id)) {
+            res.status(404).json({err: "not found"});
+            return;
+        }
+        let dev = devicesById[id];
+
+        getDeviceData(dev).then(data => {
+            data.success = true;
+            res.json(data);
+        }).catch(err => {
+            res.status(500).json({success: false, err: err.message})
+        })
+    }
 });
 
 
 app.put("/device/:id", (req, res) => {
-    if (!devicesById.hasOwnProperty(req.params.id)) {
-        res.status(404).json({err: "not found"});
-        return;
+    let id = req.params.id;
+    if (id.indexOf(",") !== -1) {// multiple set requests
+        let split = uniqueArray(id.split(","));
+        let promises = [];
+        let i =0;
+        for (let iid of split) {
+            if (devicesById.hasOwnProperty(iid)) {
+                let dev = devicesById[iid];
+
+                promises.push(new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        setDeviceData(dev,  Object.assign({},req.body)/* clone, or mapping will mess up keys */).then(resolve).catch(reject)
+                    }, (i++) * 100);
+                }))
+            }
+        }
+        Promise.all(promises).then(resp => {
+            res.json({success: true, response: resp})
+        }).catch(err => {
+            res.status(500).json({success: false, err: err.message})
+        })
+    } else {// just one set
+        if (!devicesById.hasOwnProperty(id)) {
+            res.status(404).json({err: "not found"});
+            return;
+        }
+        let dev = devicesById[id];
+
+        setDeviceData(dev, req.body).then(resp => {
+            res.json({success: true, response: resp})
+        }).catch(err => {
+            res.status(500).json({success: false, err: err.message})
+        })
     }
-    let dev = devicesById[req.params.id];
-
-    setDeviceData(dev, req.body).then(resp => {
-        res.json({success: true, response: resp})
-    }).catch((err) => {
-        res.status(500).json({success:false,err: err.message})
-    })
-
 });
 
 app.listen(port, () => console.log(`TuyaServer app listening at http://localhost:${ port }`))
