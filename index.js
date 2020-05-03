@@ -147,7 +147,7 @@ function mapDpsNamesToIds(dev, setMap) { // for set requests
         setMap["color"] = str;
     }
     if (setMap["scene"]) {// scene names to ids
-        if (dev.scenes.indexOf(setMap["scene"]) !== -1) {
+        if (dev.scenes.hasOwnProperty(setMap["scene"])) {
             setMap["scene"] = dev.scenes[setMap["scene"]];
         }
     }
@@ -330,7 +330,7 @@ function handleDeviceGet(req, res, ids, merge = false) {
                         }
 
                         for (let dp in d2.dps) {
-                            if (!merged.dps.hasOwnProperty(dp) && d1.dps.hasOwnProperty(dp) && d2.dps[dp] === d1.dps[dp]) {
+                            if (!merged.dps.hasOwnProperty(dp) && d1.dps.hasOwnProperty(dp) && JSON.stringify(d2.dps[dp]) === JSON.stringify(d1.dps[dp])) {
                                 merged.dps[dp] = d2.dps[dp];
                             }
                         }

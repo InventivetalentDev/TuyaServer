@@ -285,9 +285,9 @@ TuyaColorLight.prototype.getColorString = function (version) {
     var apiBrightness = this._convertPercentageToVal(brightness);
     var alphaBrightness = this._getAlphaHex(brightness);
 
-    var hexColor1 = convert.hsl.hex(color.H, color.S, lightness);
+    var hexColor1 = convert.hsl.hex(color.H||0, color.S||0, lightness);
     var hexColor2 = convert.hsl.hex(0, 0, lightness);
-    var hexColor3 = convert.hsl.hex(color.H, color.S, brightness);
+    var hexColor3 = convert.hsl.hex(color.H||0, color.S||0, brightness);
 
     var colorTemperature = this.colorTemperature;
 

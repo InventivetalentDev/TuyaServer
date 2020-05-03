@@ -5,7 +5,7 @@
 
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
         <style>
-            .device_card {
+            .device_card, .group_card {
                 cursor: pointer;
             }
 
@@ -28,6 +28,9 @@
         <br/>
         <div class="container">
             <div class="row" id="device_container">
+
+            </div>
+            <div class="row" id="group_container">
 
             </div>
             <div class="divider"></div>
@@ -105,6 +108,7 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
         <script>
             let selectedDevice = "";
+            let selectedType = "device";
             let deviceProperties = {};
 
             $.ajax("/devices?token=" + localStorage.token).done((devices) => {
@@ -112,20 +116,41 @@
                 devices.forEach(d => {
                     deviceProperties[d.id] = d.properties;
                     $("#device_container").append('<div class="col s3 device_card_wrapper">' +
-                        '  <div class="card device_card z-depth-1" data-device-id="' + d.id + '" data-device-name="' + d.name + '">' +
+                        '  <div class="card device_card z-depth-1" data-type="device" data-device-id="' + d.id + '" data-device-name="' + d.name + '">' +
                         '    <div class="card-content">' +
                         '      <div class="card-title">' + d.name + '</div>' +
                         '    </div>' +
                         '  </div> ' +
                         '</div>');
                 })
-            })
+            });
+            $.ajax("/groups?token=" + localStorage.token).done((groups) => {
+                $("#group_container").empty();
+                groups.forEach(g => {
+                    $("#group_container").append('<div class="col s3 group_card_wrapper">' +
+                        '  <div class="card group_card z-depth-1" data-type="group" data-group-id="' + g.id + '" data-group-name="' + g.name + '">' +
+                        '    <div class="card-content">' +
+                        '      <div class="card-title">' + g.name + '</div>' +
+                        '    </div>' +
+                        '  </div> ' +
+                        '</div>');
+                })
+            });
 
             $("body").on("click", "div.device_card", function () {
                 let $this = $(this);
                 let deviceId = $this.data("device-id");
-                console.log("click on card " + deviceId);
+                console.log("click on device card " + deviceId);
+                selectedType = "device";
                 selectedDevice = deviceId;
+                getDeviceStatus();
+            });
+            $("body").on("click", "div.group_card", function () {
+                let $this = $(this);
+                let groupId = $this.data("group-id");
+                console.log("click on group card " + groupId);
+                selectedType = "group";
+                selectedDevice = groupId;
                 getDeviceStatus();
             });
 
@@ -187,13 +212,18 @@
                 if (!selectedDevice || selectedDevice.length < 1) {
                     return;
                 }
-                $.ajax("/device/" + selectedDevice + "?token=" + localStorage.token).done(status => {
+                $.ajax("/"+selectedType+"/" + selectedDevice + "?token=" + localStorage.token).done(status => {
                     if (status.success) {
                         $("#device_controls").show();
                         $("#device_error").hide();
 
                         $(".device_card").removeClass("z-depth-3");
-                        $(".device_card[data-device-id='" + status.id + "']").addClass("z-depth-3");
+                        $(".group_card").removeClass("z-depth-3");
+                        $("."+selectedType+"_card[data-"+selectedType+"-id='" + selectedDevice + "']").addClass("z-depth-3");
+                    }
+
+                    if (selectedType === "group") {
+                        status = status.merged;
                     }
 
                     let toggle = status.dps["toggle"];
@@ -217,8 +247,8 @@
 
                     let $sceneSelect = $("#device_scene_select");
                     $sceneSelect.empty();
-                    Object.keys(status.scenes).forEach(m => {
-                        $sceneSelect.append('<option value="' + status.scenes[m] + '" ' + (status.dps.scene === status.scenes[m] ? 'selected' : '') + '>' + m + '</option>')
+                    status.scenes.forEach(s => {
+                        $sceneSelect.append('<option value="' + s + '" ' + ((status.dps.scene === s || status.dps.scene_name === s) ? 'selected' : '') + '>' + s + '</option>')
                     });
                     $sceneSelect.formSelect();
 
@@ -238,7 +268,7 @@
                 d[key] = value;
                 $.ajax({
                     contentType: "application/json",
-                    url: "/device/" + selectedDevice + "?token=" + localStorage.token,
+                    url: "/"+selectedType+"/" + selectedDevice + "?token=" + localStorage.token,
                     type: "PUT",
                     data: JSON.stringify(d)
                 })
