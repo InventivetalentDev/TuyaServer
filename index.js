@@ -113,7 +113,8 @@ function initDevice(dev) {
         device = new TuyAPI(dev);
         deviceCache[dev.id] = device;
 
-        setTimeout(() => {
+        clearTimeout(dev._disconnectTimer);
+        dev._disconnectTimer = setTimeout(() => {
             device.disconnect();
             delete deviceCache[dev.id];
         }, 10000);
