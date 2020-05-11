@@ -9,6 +9,8 @@ app.use(bodyParser.json())
 const config = require("./config");
 const port = config.port || 3201;
 
+const MAX_RETRIES = 5;
+
 const devices = require("./devices");
 const devicesById = {};
 devices.forEach(d => {
@@ -37,7 +39,7 @@ groups.forEach(g => {
         let dev1 = devicesById[devId1];
 
         for (let devId2 of g.devices) {
-            if(devId2 === devId1)continue;
+            if (devId2 === devId1) continue;
             let dev2 = devicesById[devId2];
 
             for (let mode of dev2.modes) {
@@ -50,7 +52,7 @@ groups.forEach(g => {
                     g.scenes.push(scene);
                 }
             }
-            for(let prop in dev2.properties) {
+            for (let prop in dev2.properties) {
                 if (g.properties.indexOf(prop) === -1 && dev1.properties.hasOwnProperty(prop)) {
                     g.properties.push(prop);
                 }
@@ -58,7 +60,7 @@ groups.forEach(g => {
         }
     }
 
-   groupsById[g.id] = g;
+    groupsById[g.id] = g;
 });
 
 const deviceCache = {};
@@ -185,65 +187,87 @@ function mapDpsIdsToNames(dev, dps) { // for get requests
 
 function setDeviceData(dev, data) {
     return new Promise((resolve, reject) => {
-        console.log("Set to " + dev.id + "/" + dev.name);
+            console.log("Set to " + dev.id + "/" + dev.name);
             let device = initDevice(dev);
+
+            let retry = 0;
+            let doSet = function () {
+                device.find().then(() => {
+                    deviceCache[dev.id] = device;
+                    device.connect().then(() => {
+
+                        let setMap = data;
+                        console.log("original set map: " + JSON.stringify(setMap))
+
+                        setMap = mapDpsNamesToIds(dev, setMap);
+
+                        console.log("final set map: " + JSON.stringify(setMap));
+                        device.set({
+                            multiple: true,
+                            data: setMap
+                        }).then(resp => {
+                            console.log("SET response: " + JSON.stringify(resp));
+                            resolve(resp);
+                        });
+                    });
+                });
+
+            };
 
             device.on("error", (err) => {
                 console.warn(err);
-                reject(err);
+                if (retry++ < MAX_RETRIES) {
+                    setTimeout(function () {
+                        doSet();
+                    }, 1000);
+                } else {
+                    reject(err);
+                }
             });
 
-            device.find().then(() => {
-                deviceCache[dev.id] = device;
-                device.connect().then(() => {
-
-                    let setMap = data;
-                    console.log("original set map: " + JSON.stringify(setMap))
-
-                    setMap = mapDpsNamesToIds(dev, setMap);
-
-                    console.log("final set map: " + JSON.stringify(setMap));
-                    device.set({
-                        multiple: true,
-                        data: setMap
-                    }).then(resp => {
-                        console.log("SET response: " + JSON.stringify(resp));
-                        resolve(resp);
-                    });
-                });
-            });
-
+            doSet()
         }
     )
 }
 
 function getDeviceData(dev) {
     return new Promise((resolve, reject) => {
-        console.log("Get from " + dev.id + "/" + dev.name);
+            console.log("Get from " + dev.id + "/" + dev.name);
             let device = initDevice(dev);
+
+            let retry = 0;
+            let doGet = function () {
+                device.find().then(() => {
+                    deviceCache[dev.id] = device;
+                    device.connect().then(() => {
+                        device.get({schema: true}).then(status => {
+                            console.log("got " + JSON.stringify(status));
+
+                            status.dps = mapDpsIdsToNames(dev, status.dps);
+
+                            status.id = dev.id;
+                            status.name = dev.name;
+                            status.modes = dev.modes;
+                            status.scenes = Object.keys(dev.scenes);
+                            resolve(status);
+
+                        });
+                    });
+                });
+            };
 
             device.on("error", (err) => {
                 console.warn(err);
-                reject(err);
+                if (retry++ < MAX_RETRIES) {
+                    setTimeout(function () {
+                        doGet();
+                    }, 1000);
+                } else {
+                    reject(err);
+                }
             });
 
-            device.find().then(() => {
-                deviceCache[dev.id] = device;
-                device.connect().then(() => {
-                    device.get({schema: true}).then(status => {
-                        console.log("got " + JSON.stringify(status));
-
-                        status.dps = mapDpsIdsToNames(dev, status.dps);
-
-                        status.id = dev.id;
-                        status.name = dev.name;
-                        status.modes = dev.modes;
-                        status.scenes = Object.keys(dev.scenes);
-                        resolve(status);
-
-                    });
-                });
-            });
+            doGet();
 
         }
     )
@@ -309,13 +333,13 @@ function handleDeviceGet(req, res, ids, merge = false) {
         Promise.all(promises).then(data => {
             if (merge) {
                 let merged = {
-                    dps:{},
+                    dps: {},
                     modes: [],
                     scenes: []
                 };
                 for (let d1 of data) {
                     for (let d2 of data) {
-                        if(d1 === d2) continue;
+                        if (d1 === d2) continue;
 
                         for (let mode of d2.modes) {
                             if (merged.modes.indexOf(mode) === -1 && d1.modes.indexOf(mode) !== -1) {
@@ -335,8 +359,8 @@ function handleDeviceGet(req, res, ids, merge = false) {
                         }
                     }
                 }
-                res.json({success: true, merged: merged,  data: data});
-            }else {
+                res.json({success: true, merged: merged, data: data});
+            } else {
                 res.json({success: true, data: data});
             }
         }).catch(err => {
@@ -359,19 +383,18 @@ function handleDeviceGet(req, res, ids, merge = false) {
 }
 
 
-
 function handleDeviceSet(req, res, ids, body) {
     if (ids.indexOf(",") !== -1) {// multiple set requests
         let split = uniqueArray(ids.split(","));
         let promises = [];
-        let i =0;
+        let i = 0;
         for (let iid of split) {
             if (devicesById.hasOwnProperty(iid)) {
                 let dev = devicesById[iid];
 
                 promises.push(new Promise((resolve, reject) => {
                     setTimeout(() => {
-                        setDeviceData(dev,  Object.assign({}, body)/* clone, or mapping will mess up keys */).then(resolve).catch(reject)
+                        setDeviceData(dev, Object.assign({}, body)/* clone, or mapping will mess up keys */).then(resolve).catch(reject)
                     }, (i++) * 100);
                 }))
             }
